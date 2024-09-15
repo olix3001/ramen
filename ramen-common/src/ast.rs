@@ -105,6 +105,7 @@ pub struct Type {
 
 #[derive(Debug, Clone)]
 pub enum TypeKind {
+    Unit,
     /// Integer type of arbitrary width
     Integer(usize)
 }
