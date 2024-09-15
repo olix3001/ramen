@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use crate::{ast, error::Diagnostic, scope::ScopeRef, session::Session};
+use crate::{ast::{self, NodeId}, error::Diagnostic, scope::ScopeRef, session::Session};
 
 #[derive(Debug, Clone)]
 pub struct ScopeStack {
@@ -47,8 +47,8 @@ pub trait Visitor<T> where Self: Sized {
     fn visit_item(&mut self, item: &ast::Item) -> Result<T, Self::Error> { walk_item(self, item) }
     fn visit_item_stream(&mut self, stream: &Vec<ast::Item>) -> Result<T, Self::Error> { walk_item_stream(self, stream) }
 
-    fn visit_module(&mut self, module: &ast::Module) -> Result<T, Self::Error> { walk_module(self, module) }
-    fn visit_function(&mut self, function: &ast::Function) -> Result<T, Self::Error> { walk_function(self, function) }
+    fn visit_module(&mut self, id: NodeId, module: &ast::Module) -> Result<T, Self::Error> { walk_module(self, id, module) }
+    fn visit_function(&mut self, id: NodeId, function: &ast::Function) -> Result<T, Self::Error> { walk_function(self, id, function) }
 
     // ==< Statements >==
     fn visit_statement(&mut self, statement: &ast::Statement) -> Result<T, Self::Error> { walk_statement(self, statement) }
@@ -69,11 +69,12 @@ pub trait Visitor<T> where Self: Sized {
     fn visit_block(&mut self, block: &ast::Block) -> Result<T, Self::Error> { walk_block(self, block) }
 }
 
+// ==< Items >==
 pub fn walk_item<V, T>(visitor: &mut V, item: &ast::Item) -> Result<T, V::Error>
 where V: Visitor<T> {
     match &item.kind {
-        ast::ItemKind::Module(module) => visitor.visit_module(module),
-        ast::ItemKind::Function(function) => visitor.visit_function(function),
+        ast::ItemKind::Module(module) => visitor.visit_module(item.id, module),
+        ast::ItemKind::Function(function) => visitor.visit_function(item.id, function),
     }
 }
 
@@ -85,14 +86,22 @@ where V: Visitor<T> {
     Ok(visitor.default_return())
 }
 
-pub fn walk_module<V, T>(visitor: &mut V, module: &ast::Module) -> Result<T, V::Error>
+pub fn walk_module<V, T>(visitor: &mut V, id: NodeId, module: &ast::Module) -> Result<T, V::Error>
 where V: Visitor<T> {
-    visitor.visit_item_stream(&module.items)
+    let def_id = visitor.get_session().get_ref_target(id).expect("Cannot find module definition reference.");
+    let module_scope = visitor.get_session().scopes.get(def_id).expect("Cannot find module scope.");
+
+    visitor.with_scope(module_scope, |visitor|
+        visitor.visit_item_stream(&module.items)
+    )
 }
 
-pub fn walk_function<V, T>(visitor: &mut V, function: &ast::Function) -> Result<T, V::Error>
+pub fn walk_function<V, T>(visitor: &mut V, id: NodeId, function: &ast::Function) -> Result<T, V::Error>
 where V: Visitor<T> {
-    { // TODO: Use visitor.with_scope with function scope acquired from session.
+    let def_id = visitor.get_session().get_ref_target(id).expect("Cannot find function definition reference.");
+    let function_scope = visitor.get_session().scopes.get(def_id).expect("Cannot find function scope.");
+
+    visitor.with_scope(function_scope, |visitor| { 
         for parameter in function.parameters.iter() {
             visitor.visit_value_parameter(parameter)?;
         }
@@ -101,11 +110,13 @@ where V: Visitor<T> {
             visitor.visit_type(&return_type)?;
         }
         visitor.visit_block(&function.body)?;
-    }
+        Ok(visitor.default_return())
+    })?;
 
     Ok(visitor.default_return())
 }
 
+// ==< Statements >==
 pub fn walk_statement<V, T>(visitor: &mut V, statement: &ast::Statement) -> Result<T, V::Error>
 where V: Visitor<T> {
     match &statement.kind {
@@ -122,6 +133,7 @@ where V: Visitor<T> {
     Ok(visitor.default_return())
 }
 
+// ==< Expressions >==
 pub fn walk_expression<V, T>(visitor: &mut V, expression: &ast::Expression) -> Result<T, V::Error>
 where V: Visitor<T> {
     match &expression.kind {
@@ -129,11 +141,13 @@ where V: Visitor<T> {
     }
 }
 
+// ==< Types >==
 pub fn walk_type<V, T>(visitor: &mut V, _ty: &ast::Type) -> Result<T, V::Error>
 where V: Visitor<T> {
     Ok(visitor.default_return())
 }
 
+// ==< Other/Utility >==
 pub fn walk_value_parameter<V, T>(visitor: &mut V, parameter: &ast::ValueParameter) -> Result<T, V::Error>
 where V: Visitor<T> {
     visitor.visit_parameter(&parameter.parameter)?;

@@ -14,3 +14,20 @@ pub trait Diagnostic {
     fn get_location(&self) -> Loc;
     fn build_report(&self, session: &Session) -> ariadne::Report<'static, Loc>;
 }
+
+#[derive(Debug, Clone)]
+pub enum ResolutionError {
+
+}
+
+impl Diagnostic for ResolutionError {
+    fn is_fatal(&self) -> bool { true }
+
+    fn get_location(&self) -> Loc {
+        todo!()
+    }
+
+    fn build_report(&self, session: &Session) -> ariadne::Report<'static, Loc> {
+        todo!()
+    }
+}

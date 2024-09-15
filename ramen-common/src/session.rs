@@ -1,8 +1,9 @@
 use std::cell::{Cell, RefCell};
 
+use hashbrown::HashMap;
 use slotmap::SlotMap;
 
-use crate::error::Diagnostic;
+use crate::{ast::NodeId, error::{Diagnostic, ResolutionError}, scope::ScopeMapRef};
 
 slotmap::new_key_type! {
     pub struct SourceId;
@@ -18,14 +19,28 @@ impl SourceId {
 #[derive(Debug, Clone)]
 pub struct Session {
     pub sources: RefCell<SlotMap<SourceId, RamenSource>>,
-    pub errors: Cell<usize>
+    pub errors: Cell<usize>,
+
+    pub scopes: ScopeMapRef,
+    pub refs: RefCell<HashMap<NodeId, NodeId>>,
 }
 
 impl Session {
     pub fn new() -> Self {
         Self {
             sources: RefCell::default(),
-            errors: Cell::new(0)
+            errors: Cell::new(0),
+
+            scopes: ScopeMapRef::new(),
+            refs: RefCell::default()
+        }
+    }
+
+    // ==< Ref-related >==
+    pub fn get_ref_target(&self, id: NodeId) -> Result<NodeId, ResolutionError> {
+        match self.refs.borrow().get(&id) {
+            Some(def_id) => Ok(*def_id),
+            None => todo!("Throw proper resolution error")
         }
     }
 
