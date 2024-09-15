@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = ["./ramen-common", "./ramen-frontend"]
+
+[workspace.dependencies]
+ramen_common = { path = "./ramen-common" }
+ramen_frontend = { path = "./ramen-frontend" }
