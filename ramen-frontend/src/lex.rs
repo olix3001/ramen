@@ -1,6 +1,8 @@
 use logos::{Lexer, Logos};
 use ramen_common::{Loc, session::SourceId};
 
+use crate::error::SyntaxError;
+
 #[derive(Logos, Debug, Clone, Copy, PartialEq)]
 #[logos(skip r"//[^\n]*")]
 #[logos(skip r"[ \t\r\f]+")] // Do not skip newline as it acts as semicolon
@@ -58,6 +60,7 @@ pub enum Token {
     #[regex(r"int[0-9]+")] IntegerType,
 
     // ==< Value literals >==
+    #[regex(r"[0-9][0-9_]*")] IntegerLiteral,
 
     // ==< Modifiers >==
 
@@ -67,14 +70,25 @@ pub enum Token {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct TokenInfo(pub(crate) Token, pub(crate) String, pub(crate) Loc);
+pub struct TokenInfo(Token, String, Loc);
+
+impl TokenInfo {
+    #[inline(always)]
+    pub fn kind(&self) -> Token { self.0 }
+    #[inline(always)]
+    pub fn text(&self) -> String { self.1.clone() }
+    #[inline(always)]
+    pub fn location(&self) -> Loc { self.2.clone() }
+}
 
 #[derive(Debug, Clone)]
 pub struct Tokens<'src> {
     iter: Lexer<'src, Token>,
     stack: Vec<TokenInfo>,
     current: usize,
-    source: SourceId
+    pub(crate) source: SourceId,
+
+    span_stack: Vec<usize>
 }
 
 impl<'src> Tokens<'src> {
@@ -83,7 +97,9 @@ impl<'src> Tokens<'src> {
             iter,
             stack: Vec::new(),
             current: 0,
-            source
+            source,
+
+            span_stack: Vec::new()
         }
     }
 
@@ -106,10 +122,21 @@ impl<'src> Tokens<'src> {
         }
     }
 
+    pub fn next_info(&mut self) -> Option<TokenInfo> {
+        if self.next().is_some() { self.current_info() }
+        else { None }
+    }
+
     pub fn current(&self) -> Option<Token> {
         if self.current < 1 || self.current - 1 > self.stack.len() 
             { return None; }
         Some(self.stack[self.current - 1].0)
+    }
+
+    pub fn current_info(&self) -> Option<TokenInfo> {
+        if self.current < 1 || self.current - 1 > self.stack.len() 
+            { return None; }
+        Some(self.stack[self.current - 1].clone())
     }
 
     pub fn back(&mut self) -> bool {
@@ -126,20 +153,28 @@ impl<'src> Tokens<'src> {
         next
     }
 
+    pub fn peek_info(&mut self) -> Option<TokenInfo> {
+        let next = self.next();
+        let info = self.current_info();
+        if next.is_some() {
+            self.current -= 1;
+        }
+        info
+    }
+
     pub fn is(&mut self, token: Token) -> bool {
         let next = self.next();
-        if next != Some(token) {
-            self.back();
-            false
-        } else { true }
+        if next == Some(token) { true } 
+        else if next == None { false }
+        else { self.current -= 1; false }
     }
 
     pub fn is_any(&mut self, tokens: &[Token]) -> Option<Token> {
         let next = self.next();
         if let Some(next) = next {
             if tokens.contains(&next) { return Some(next) }
+            self.back();
         }
-        self.back();
         None
     }
 
@@ -153,5 +188,25 @@ impl<'src> Tokens<'src> {
         if self.current < 1 || self.current - 1 > self.stack.len() 
             { return None; }
         Some(self.stack[self.current - 1].1.as_str())
+    }
+
+    // ==< Parser utilities >==
+    pub fn expect(&mut self, token: Token) -> Result<TokenInfo, SyntaxError> {
+        if self.next() != Some(token) { Err(SyntaxError::UnexpectedToken { 
+            expected: vec![token], 
+            found: self.current_info().unwrap(),
+        }) } else { Ok(self.current_info().unwrap()) }
+    }
+
+    pub fn begin_span(&mut self) {
+        let start = self.peek_info().unwrap().location().span.start;
+        self.span_stack.push(start);
+    }
+
+    pub fn end_span(&mut self) -> Loc {
+        Loc::new(
+            self.source,
+            self.span_stack.pop().unwrap()..self.loc().unwrap().span.end
+        )
     }
 }

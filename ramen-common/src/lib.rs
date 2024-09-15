@@ -3,6 +3,7 @@ use slotmap::Key;
 
 pub mod error;
 pub mod session;
+pub mod ast;
 
 pub extern crate ariadne;
 
