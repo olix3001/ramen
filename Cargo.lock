@@ -122,18 +122,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "ramen-common"
+name = "ramen_common"
 version = "0.1.0"
 dependencies = [
  "ariadne",
  "hashbrown",
+ "slotmap",
 ]
 
 [[package]]
-name = "ramen-frontend"
+name = "ramen_frontend"
 version = "0.1.0"
 dependencies = [
  "logos",
+ "ramen_common",
 ]
 
 [[package]]
@@ -141,6 +143,15 @@ name = "regex-syntax"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
+
+[[package]]
+name = "slotmap"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbff4acf519f630b3a3ddcfaea6c06b42174d9a44bc70c620e9ed1649d58b82a"
+dependencies = [
+ "version_check",
+]
 
 [[package]]
 name = "syn"

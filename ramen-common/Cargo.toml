@@ -1,8 +1,9 @@
 [package]
-name = "ramen-common"
+name = "ramen_common"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 ariadne = "0.4.1"
 hashbrown = "0.14.5"
+slotmap = "1.0.7"

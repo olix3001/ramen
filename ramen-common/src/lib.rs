@@ -1,14 +1,26 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+use session::SourceId;
+use slotmap::Key;
+
+pub mod error;
+pub mod session;
+
+pub extern crate ariadne;
+
+/// Location of given element in source code including span and file
+#[derive(Debug, Clone, PartialEq)]
+pub struct Loc {
+    pub span: core::ops::Range<usize>,
+    pub file: SourceId
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+impl Loc {
+    pub fn new(file: SourceId, span: core::ops::Range<usize>) -> Self {
+        Self { file, span }
+    }
+}
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+impl std::fmt::Display for Loc {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}@<{}>", self.span.start, self.span.end, self.file.data().as_ffi())
     }
 }

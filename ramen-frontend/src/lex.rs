@@ -1,4 +1,5 @@
 use logos::{Lexer, Logos};
+use ramen_common::{Loc, session::SourceId};
 
 #[derive(Logos, Debug, Clone, Copy, PartialEq)]
 #[logos(skip r"//[^\n]*")]
@@ -66,21 +67,23 @@ pub enum Token {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct TokenInfo(Token, String, core::ops::Range<usize>);
+pub struct TokenInfo(pub(crate) Token, pub(crate) String, pub(crate) Loc);
 
 #[derive(Debug, Clone)]
 pub struct Tokens<'src> {
     iter: Lexer<'src, Token>,
     stack: Vec<TokenInfo>,
-    current: usize
+    current: usize,
+    source: SourceId
 }
 
 impl<'src> Tokens<'src> {
-    pub fn from_lexer(iter: Lexer<'src, Token>) -> Self {
+    pub fn from_lexer(iter: Lexer<'src, Token>, source: SourceId) -> Self {
         Self {
             iter,
             stack: Vec::new(),
-            current: 0
+            current: 0,
+            source
         }
     }
 
@@ -91,7 +94,7 @@ impl<'src> Tokens<'src> {
             let slice = self.iter.slice().to_string();
             let range = self.iter.span();
 
-            self.stack.push(TokenInfo(next_elem, slice, range));
+            self.stack.push(TokenInfo(next_elem, slice, Loc::new(self.source, range)));
             self.current += 1;
             Some(next_elem)
         } else {
@@ -138,6 +141,12 @@ impl<'src> Tokens<'src> {
         }
         self.back();
         None
+    }
+
+    pub fn loc(&self) -> Option<Loc> {
+        if self.current < 1 || self.current - 1 > self.stack.len() 
+            { return None; }
+        Some(self.stack[self.current - 1].2.clone())
     }
 
     pub fn text(&self) -> Option<&str> {
