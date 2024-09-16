@@ -3,7 +3,7 @@ use std::cell::{Cell, RefCell};
 use hashbrown::HashMap;
 use slotmap::SlotMap;
 
-use crate::{ast::NodeId, error::{Diagnostic, ResolutionError}, scope::ScopeMapRef};
+use crate::{ast::NodeId, defs::Definition, error::Diagnostic, scope::ScopeMapRef, types::RamenType};
 
 slotmap::new_key_type! {
     pub struct SourceId;
@@ -23,6 +23,8 @@ pub struct Session {
 
     pub scopes: ScopeMapRef,
     pub refs: RefCell<HashMap<NodeId, NodeId>>,
+    pub defs: RefCell<HashMap<NodeId, Definition>>,
+    pub types: RefCell<HashMap<NodeId, RamenType>>,
 }
 
 impl Session {
@@ -32,17 +34,42 @@ impl Session {
             errors: Cell::new(0),
 
             scopes: ScopeMapRef::new(),
-            refs: RefCell::default()
+            refs: RefCell::default(),
+            defs: RefCell::default(),
+            types: RefCell::default(),
         }
     }
 
     // ==< Ref-related >==
-    pub fn get_ref_target(&self, id: NodeId) -> Result<NodeId, ResolutionError> {
-        match self.refs.borrow().get(&id) {
-            Some(def_id) => Ok(*def_id),
-            None => todo!("Throw proper resolution error")
-        }
+    pub fn set_ref(&self, source: NodeId, target: NodeId) {
+        self.refs.borrow_mut().insert(source, target);
     }
+
+    pub fn get_ref_target(&self, id: NodeId) -> Option<NodeId> {
+        self.refs.borrow().get(&id).cloned()
+    }
+
+    // ==< Def-related >==
+    pub fn alloc_def(&self, ref_id: NodeId) -> NodeId {
+        let def_id = NodeId::next();
+        self.set_ref(ref_id, def_id);
+        def_id
+    }
+
+    pub fn set_def(&self, def_id: NodeId, def: Definition) {
+        #[cfg(debug_assertions)]
+        if let Some(existing) = self.defs.borrow().get(&def_id) {
+            panic!("Trying to override definition {def_id} with {def:?}, but is is already set to {existing:?}");
+        }
+
+        self.defs.borrow_mut().insert(def_id, def);
+    }
+
+    pub fn get_def(&self, def_id: NodeId) -> Option<Definition> {
+        self.defs.borrow().get(&def_id).cloned()
+    }
+
+    // ==< Type-related >==
 
     // ==< Reporting >==
     pub fn print_diagnostic(&self, diag: &dyn Diagnostic) {

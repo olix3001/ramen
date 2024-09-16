@@ -6,6 +6,8 @@ pub mod session;
 pub mod ast;
 pub mod visitor;
 pub mod scope;
+pub mod defs;
+pub mod types;
 
 pub extern crate ariadne;
 
