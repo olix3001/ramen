@@ -1,6 +1,7 @@
 use ramen_common::{ast::{self, NodeId}, error::Diagnostic, scope::ScopeRef, session::Session};
 
 pub mod binding;
+pub mod type_resolution;
 
 pub trait ASTPass<'sess, R> {
     type Error: Diagnostic;

@@ -70,6 +70,18 @@ impl Session {
     }
 
     // ==< Type-related >==
+    pub fn try_bind_type(&self, target: NodeId, source: NodeId) -> bool {
+        if let Some(ty) = self.get_type(source) {
+            self.set_type(target, ty);
+            true
+        } else { false }
+    }
+    pub fn set_type(&self, id: NodeId, ty: RamenType) {
+        self.types.borrow_mut().insert(id, ty);
+    }
+    pub fn get_type(&self, id: NodeId) -> Option<RamenType> {
+        self.types.borrow_mut().get(&id).cloned()
+    }
 
     // ==< Reporting >==
     pub fn print_diagnostic(&self, diag: &dyn Diagnostic) {

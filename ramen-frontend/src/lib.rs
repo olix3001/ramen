@@ -7,7 +7,7 @@ pub mod ast_pass;
 mod test {
     use logos::Logos;
 
-    use crate::{ast_pass::{binding::ItemNameBindingPass, ASTPass}, lex::{self, Token}, parse};
+    use crate::{ast_pass::{binding::ItemNameBindingPass, type_resolution::TypeResolutionPass, ASTPass}, lex::{self, Token}, parse};
     use ramen_common::{ast::NodeId, scope::Scope, session::{Session, SourceId}};
 
     #[test]
@@ -23,6 +23,9 @@ mod test {
         ItemNameBindingPass::run_on_module(&session, global_scope.clone(), module_id, &ast)
             .expect("Something went wrong during item name binding pass.");
 
-        panic!("{ast:#?}");
+        TypeResolutionPass::run_on_module(&session, global_scope.clone(), module_id, &ast)
+            .expect("Something went wrong during type resolution pass.");
+
+        panic!("{session:?}");
     }
 }
