@@ -1,4 +1,4 @@
-use ramen_common::ast::{self, Attribute, Attributes, Block, NodeId};
+use ramen_common::ast::{self, Attribute, Attributes, NodeId};
 use crate::{error::SyntaxError, lex::{Token, Tokens}};
 
 pub fn parse_ramen(module_name: String, tokens: &mut Tokens) -> Result<ast::Module, SyntaxError> {

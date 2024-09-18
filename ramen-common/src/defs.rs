@@ -1,7 +1,5 @@
 use std::rc::Rc;
 
-use crate::scope::{Scope, ScopeRef};
-
 #[derive(Debug, Clone)]
 pub enum Definition {
     Variable,
