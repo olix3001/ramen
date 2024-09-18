@@ -1,7 +1,9 @@
 [workspace]
 resolver = "2"
-members = ["./ramen-common", "./ramen-frontend"]
+members = ["ramen-common", "ramen-frontend", "ramen-backend-llvm"]
 
 [workspace.dependencies]
 ramen_common = { path = "./ramen-common" }
 ramen_frontend = { path = "./ramen-frontend" }
+
+ramen_backend_llvm = { path = "./ramen-backend-llvm" }
