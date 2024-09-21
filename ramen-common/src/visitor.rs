@@ -25,6 +25,19 @@ impl ScopeStack {
     pub fn get_scope(&self) -> ScopeRef {
         self.stack.borrow().last().cloned().expect("Scope stack should have at least one scope.")
     }
+
+    pub fn get_namespace_prefix(&self) -> String {
+        self.stack
+            .borrow().iter().rev()
+            .filter(|s| s.name.is_some())
+            .map(|s| s.name.clone().unwrap())
+            .collect::<Vec<String>>()
+            .join(".")
+    }
+
+    pub fn prefix_name(&self, separator: &str, name: impl AsRef<str>) -> String {
+        format!("{}{separator}{}", self.get_namespace_prefix(), name.as_ref())
+    }
 }
 
 pub trait Visitor<T> where Self: Sized {
@@ -54,10 +67,12 @@ pub trait Visitor<T> where Self: Sized {
     fn visit_statement(&mut self, statement: &ast::Statement) -> Result<T, Self::Error> { walk_statement(self, statement) }
     fn visit_statement_stream(&mut self, stream: &Vec<ast::Statement>) -> Result<T, Self::Error> { walk_statement_stream(self, stream) }
 
+    fn visit_return_statement(&mut self, _id: NodeId, value: &ast::Expression) -> Result<T, Self::Error> { walk_expression(self, value) }
+
     // ==< Expressions >==
     fn visit_expression(&mut self, expression: &ast::Expression) -> Result<T, Self::Error> { walk_expression(self, expression) }
 
-    fn visit_literal_expression(&mut self, _literal: &ast::Literal) -> Result<T, Self::Error> { Ok(self.default_return()) }
+    fn visit_literal_expression(&mut self, _id: NodeId, _literal: &ast::Literal) -> Result<T, Self::Error> { Ok(self.default_return()) }
 
     // ==< Types >==
     fn visit_type(&mut self, ty: &ast::Type) -> Result<T, Self::Error> { walk_type(self, ty) }
@@ -122,6 +137,8 @@ where V: Visitor<T> {
     match &statement.kind {
         ast::StatementKind::Item(item) => visitor.visit_item(item),
         ast::StatementKind::Expression(expression) => visitor.visit_expression(expression),
+
+        ast::StatementKind::Return(expression) => visitor.visit_return_statement(statement.id, expression),
     }
 }
 
@@ -137,7 +154,7 @@ where V: Visitor<T> {
 pub fn walk_expression<V, T>(visitor: &mut V, expression: &ast::Expression) -> Result<T, V::Error>
 where V: Visitor<T> {
     match &expression.kind {
-        ast::ExpressionKind::Literal(literal) => visitor.visit_literal_expression(literal),
+        ast::ExpressionKind::Literal(literal) => visitor.visit_literal_expression(expression.id, literal),
     }
 }
 
@@ -166,4 +183,11 @@ where V: Visitor<T> {
 pub fn walk_block<V, T>(visitor: &mut V, block: &ast::Block) -> Result<T, V::Error>
 where V: Visitor<T> {
     visitor.visit_statement_stream(&block.statements)
+}
+
+// ==< AST Pass Abstraction >==
+pub trait ASTPass<'sess, R> {
+    type Error: Diagnostic;
+
+    fn run_on_module(session: &'sess Session, scope: ScopeRef, mod_id: NodeId, module: &ast::Module) -> Result<R, Self::Error>;
 }

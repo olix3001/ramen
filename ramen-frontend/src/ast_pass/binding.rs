@@ -1,6 +1,4 @@
-use ramen_common::{ast::{self, NodeId}, defs::Definition, error::ResolutionError, scope::ScopeRef, session::Session, visitor::{walk_function, walk_module, ScopeStack, Visitor}};
-
-use super::ASTPass;
+use ramen_common::{ast::{self, NodeId}, defs::Definition, error::ResolutionError, scope::ScopeRef, session::Session, visitor::{walk_function, walk_module, ASTPass, ScopeStack, Visitor}};
 
 pub struct ItemNameBindingPass<'sess> {
     pub session: &'sess Session,
@@ -34,7 +32,7 @@ impl<'sess> Visitor<()> for ItemNameBindingPass<'sess> {
     fn visit_module(&mut self, id: NodeId, module: &ast::Module) -> Result<(), Self::Error> {
         let module_def_id = self.session.alloc_def(id);
         self.session.set_def(module_def_id, Definition::Module);
-        self.session.scopes.add(module_def_id, Some(self.stack.get_scope()));
+        self.session.scopes.add(module_def_id, Some(self.stack.get_scope()), Some(module.name.clone()));
         self.stack.get_scope().define_name(&module.name, module_def_id);
 
         walk_module(self, id, module)
@@ -43,7 +41,7 @@ impl<'sess> Visitor<()> for ItemNameBindingPass<'sess> {
     fn visit_function(&mut self, id: NodeId, function: &ast::Function) -> Result<(), Self::Error> {
         let function_def_id = self.session.alloc_def(id);
         self.session.set_def(function_def_id, Definition::Function);
-        self.session.scopes.add(function_def_id, Some(self.stack.get_scope()));
+        self.session.scopes.add(function_def_id, Some(self.stack.get_scope()), Some(function.name.clone()));
         self.stack.get_scope().define_name(&function.name, function_def_id);
 
         walk_function(self, id, function)

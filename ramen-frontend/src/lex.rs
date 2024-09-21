@@ -102,6 +102,10 @@ impl<'src> Tokens<'src> {
             span_stack: Vec::new()
         }
     }
+    
+    pub fn from_string(text: &'src str, source: SourceId) -> Self {
+        Self::from_lexer(Token::lexer(text), source)
+    }
 
     pub fn next(&mut self) -> Option<Token> {
         if self.current == self.stack.len() {

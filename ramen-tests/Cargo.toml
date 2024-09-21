@@ -1,0 +1,10 @@
+[package]
+name = "ramen-tests"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+ramen_common.workspace = true
+ramen_frontend.workspace = true
+
+ramen_backend_llvm.workspace = true

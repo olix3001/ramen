@@ -66,7 +66,9 @@ pub struct Statement {
 #[derive(Debug)]
 pub enum StatementKind {
     Item(Item),
-    Expression(Expression)
+    Expression(Expression),
+
+    Return(Expression)
 }
 
 #[derive(Debug)]

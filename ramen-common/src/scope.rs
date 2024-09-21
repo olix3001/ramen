@@ -8,6 +8,7 @@ use crate::ast::NodeId;
 pub struct Scope {
     pub parent: Option<ScopeRef>,
     pub namespaces: [RefCell<HashMap<String, NodeId>>; 2],
+    pub name: Option<String>
 }
 
 pub type ScopeRef = Rc<Scope>;
@@ -16,18 +17,19 @@ impl Scope {
     pub const NS_NAMES: usize = 0;
     pub const NS_TYPES: usize = 1;
 
-    pub fn new(parent: Option<ScopeRef>) -> Self {
+    pub fn new(parent: Option<ScopeRef>, name: Option<String>) -> Self {
         Self {
             parent,
             namespaces: [
                 RefCell::default(),
                 RefCell::default(),
-            ]
+            ],
+            name: None
         }
     }
 
-    pub fn new_ref(parent: Option<ScopeRef>) -> ScopeRef {
-        Rc::new(Self::new(parent))
+    pub fn new_ref(parent: Option<ScopeRef>, name: Option<String>) -> ScopeRef {
+        Rc::new(Self::new(parent, name))
     }
 
     fn define(
@@ -81,16 +83,16 @@ impl ScopeMapRef {
         self_
     }
 
-    pub fn get_or_new(&self, id: NodeId, parent: Option<ScopeRef>) -> ScopeRef {
+    pub fn get_or_new(&self, id: NodeId, parent: Option<ScopeRef>, name: Option<String>) -> ScopeRef {
         let scope = self.scopes.borrow().get(&id).cloned();
         match scope {
             Some(scope) => scope,
-            None => self.add(id, parent)
+            None => self.add(id, parent, name)
         }
     }
 
-    pub fn add(&self, id: NodeId, parent: Option<ScopeRef>) -> ScopeRef {
-        let scope = Scope::new_ref(parent);
+    pub fn add(&self, id: NodeId, parent: Option<ScopeRef>, name: Option<String>) -> ScopeRef {
+        let scope = Scope::new_ref(parent, name);
         let previous = self.scopes.borrow_mut().insert(id, scope.clone());
         #[cfg(debug_assertions)]
         if previous.is_some() {

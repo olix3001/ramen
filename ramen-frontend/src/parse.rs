@@ -46,7 +46,7 @@ fn parse_function_definition(tokens: &mut Tokens) -> Result<ast::Function, Synta
     let name = tokens.expect(Token::Identifier)?.text();
     let parameters = parse_enclosed_value_parameter_list(tokens)?;
 
-    let return_type = if tokens.is(Token::Comma) { Some(parse_type(tokens)?) }
+    let return_type = if tokens.is(Token::Colon) { Some(parse_type(tokens)?) }
     else { None };
 
     let body = parse_block_or_expression_shorthand(tokens)?;
@@ -69,7 +69,7 @@ fn parse_block_or_expression_shorthand(tokens: &mut Tokens) -> Result<ast::Block
             location: expression.location.clone(),
             statements: vec![ast::Statement {
                 location: expression.location.clone(),
-                kind: ast::StatementKind::Expression(expression),
+                kind: ast::StatementKind::Return(expression),
                 id: NodeId::next(),
             }],
             id: NodeId::next(),

@@ -1,0 +1,1 @@
+//! This crate exists only for integration testing purposes as `cargo` does not allow integration tests in workspace for some reason. 

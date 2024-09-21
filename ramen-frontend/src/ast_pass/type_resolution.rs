@@ -1,6 +1,4 @@
-use ramen_common::{ast::{self, NodeId}, error::ResolutionError, scope::ScopeRef, session::Session, types::{CallableType, RamenType}, visitor::{walk_function, walk_parameter, ScopeStack, Visitor}};
-
-use super::ASTPass;
+use ramen_common::{ast::{self, NodeId}, error::ResolutionError, scope::ScopeRef, session::Session, types::{CallableType, RamenType}, visitor::{walk_function, walk_parameter, ASTPass, ScopeStack, Visitor}};
 
 pub struct TypeResolutionPass<'sess> {
     pub session: &'sess Session,
@@ -63,6 +61,14 @@ impl<'sess> Visitor<()> for TypeResolutionPass<'sess> {
     fn visit_parameter(&mut self, parameter: &ast::Parameter) -> Result<(), Self::Error> {
         walk_parameter(self, parameter)?;
         self.session.try_bind_type(parameter.id, parameter.ty.id);
+        Ok(())
+    }
+
+    fn visit_literal_expression(&mut self, id: NodeId, literal: &ast::Literal) -> Result<(), Self::Error> {
+        match literal {
+            ast::Literal::Integer(_) => self.session.set_type(id, RamenType::Integer(32)), // Default width... change to minimum required in the future
+        } 
+
         Ok(())
     }
 
