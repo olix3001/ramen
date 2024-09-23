@@ -43,6 +43,7 @@ impl<'sess> Visitor<()> for ItemNameBindingPass<'sess> {
         self.session.set_def(function_def_id, Definition::Function);
         self.session.scopes.add(function_def_id, Some(self.stack.get_scope()), Some(function.name.clone()));
         self.stack.get_scope().define_name(&function.name, function_def_id);
+        self.session.set_symbol(id, self.stack.prefix_name(".", &function.name));
 
         walk_function(self, id, function)
     }

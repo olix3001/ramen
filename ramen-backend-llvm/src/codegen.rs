@@ -42,9 +42,10 @@ impl<'sess, 'ctx> Visitor<VisitorReturn<'ctx>> for LLVMBackendCodegenPass<'sess,
 
     fn visit_function(&mut self, id: NodeId, function: &ast::Function) -> Result<VisitorReturn<'ctx>, Self::Error> {
         let ll_function = self.module.add_function(
-            &self.stack.prefix_name("$", &function.name),
+            &self.session.get_symbol(id)
+                .expect("Function symbol should have been set by frontend."),
             self.session.get_type(id)
-                .expect("Function type should have been resolved by frontend")
+                .expect("Function type should have been resolved by frontend.")
                 .as_llvm_type(&self.context)?.into_function_type(),
             None // TODO: Replace with linkage based on modifiers like extern "abi".
         );

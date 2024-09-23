@@ -25,6 +25,7 @@ pub struct Session {
     pub refs: RefCell<HashMap<NodeId, NodeId>>,
     pub defs: RefCell<HashMap<NodeId, Definition>>,
     pub types: RefCell<HashMap<NodeId, RamenType>>,
+    pub symbols: RefCell<HashMap<NodeId, String>>
 }
 
 impl Session {
@@ -37,6 +38,7 @@ impl Session {
             refs: RefCell::default(),
             defs: RefCell::default(),
             types: RefCell::default(),
+            symbols: RefCell::default(),
         }
     }
 
@@ -81,6 +83,15 @@ impl Session {
     }
     pub fn get_type(&self, id: NodeId) -> Option<RamenType> {
         self.types.borrow_mut().get(&id).cloned()
+    }
+
+    // ==< Symbol-related >==
+    pub fn set_symbol(&self, node: NodeId, symbol: impl AsRef<str>) {
+        self.symbols.borrow_mut().insert(node, symbol.as_ref().to_string());
+    }
+
+    pub fn get_symbol(&self, node: NodeId) -> Option<String> {
+        self.symbols.borrow().get(&node).cloned()
     }
 
     // ==< Reporting >==
